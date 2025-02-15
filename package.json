@@ -1,0 +1,49 @@
+{
+  "name": "translate",
+  "module": "index.ts",
+  "type": "module",
+  "author": {
+    "name": "yellowryan"
+  },
+  "keywords": [
+    "translate",
+    "tool",
+    "node"
+  ],
+  "exports": {
+    ".": {
+      "import": "./dist/cli.mjs",
+      "require": "./dist/cli.cjs"
+    }
+  },
+  "main": "./dist/cli.mjs",
+  "types": "./dist/cli.d.ts",
+  "files": ["dist"],
+  "bin": {
+    "tranlsate": "./bin/translate.mjs",
+    "ts": "./bin/translate.mjs"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "build": "unbuild",
+    "test": "unbuild & vitest",
+    "release": "bumpp && bun publish"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/yargs": "^17.0.33",
+    "eslint": "^9.20.1",
+    "typescript": "^5.7.3"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "openai": "^4.85.1",
+    "ora": "^8.2.0",
+    "picocolors": "^1.1.1",
+    "restore-cursor": "^5.1.0",
+    "unbuild": "^3.3.1",
+    "yargs": "^17.7.2"
+  }
+}
