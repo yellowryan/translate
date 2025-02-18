@@ -1,6 +1,6 @@
 {
   "name": "translate",
-  "module": "index.ts",
+  "module": "src/index.ts",
   "type": "module",
   "author": {
     "name": "yellowryan"
@@ -12,16 +12,16 @@
   ],
   "exports": {
     ".": {
-      "import": "./dist/cli.mjs",
-      "require": "./dist/cli.cjs"
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
     }
   },
-  "main": "./dist/cli.mjs",
-  "types": "./dist/cli.d.ts",
+  "main": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
   "files": ["dist"],
   "bin": {
-    "tranlsate": "./bin/translate.mjs",
-    "ts": "./bin/translate.mjs"
+    "translate": "./dist/index.mjs",
+    "ts": "./dist/index.mjs"
   },
   "scripts": {
     "lint": "eslint .",
@@ -39,6 +39,8 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.7",
     "openai": "^4.85.1",
     "ora": "^8.2.0",
     "picocolors": "^1.1.1",
