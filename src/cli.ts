@@ -1,88 +1,57 @@
 import type { Argv } from 'yargs'
 import process from 'node:process'
-import axios from 'axios'
 import OpenAI from 'openai'
-import ora from 'ora'
-import pc from 'picocolors'
 import restoreCursor from 'restore-cursor'
 import yargs from 'yargs'
 import { hideBin } from 'yargs/helpers'
 import validateKey from './validate'
+import { resolveConfig } from './config.ts'
+import inquirer from 'inquirer'
+import fs from 'fs'
+import path from 'path'
 
-validateKey()
-
-const openai = new OpenAI({
-  baseURL: process.env.DEEPSEEK_API_KEY,
-})
-
-const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY
+// 配置文件路径
+const CONFIG_PATH = path.join(process.env.HOME || process.env.USERPROFILE || '', '.translate.config.json')
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions'
 
-async function translateWithDeepseek(text: string, targetLang: string) {
-  const response = await axios.post(DEEPSEEK_API_URL, {
-    messages: [
+// 检查并获取配置
+async function getOrCreateConfig() {
+  if (!fs.existsSync(CONFIG_PATH)) {
+    const answers = await inquirer.prompt([
       {
-        role: 'system',
-        content: `You are a translator. Translate the following text to ${targetLang}. Only return the translated text without any explanations.`,
+        type: 'input',
+        name: 'apiKey',
+        message: '请输入您的 DeepSeek API Key:',
+        validate: (input) => input.length > 0 || '请输入有效的 API Key',
       },
       {
-        role: 'user',
-        content: text,
+        type: 'input',
+        name: 'defaultTargetLang',
+        message: '请输入默认的目标翻译语言:',
+        default: 'cn(中文)',
       },
-    ],
-  }, {
-    headers: {
-      'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-  })
-  return response.data.choices[0].message.content
-}
-
-async function detectLanguage(text: string) {
-  try {
-    const response = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a language detector. Return only the language name in English. For example: \'English\', \'Chinese\', \'Japanese\', etc.',
-        },
-        {
-          role: 'user',
-          content: `Detect the language of this text: "${text}"`,
-        },
-      ],
-    })
-    return response.choices[0].message.content?.trim()
-  }
-  catch (error) {
-    console.error(pc.red('Language detection failed, falling back to auto detection'))
-    return 'auto'
-  }
-}
-
-async function translate(text: string, targetLang: string) {
-  const spinner = ora('Detecting language...').start()
-
-  try {
-    const sourceLanguage = await detectLanguage(text)
-    spinner.text = `Translating from ${pc.cyan(sourceLanguage)} to ${pc.cyan(targetLang)}...`
-
-    const result = await Promise.race([
-      translateWithDeepseek(text, targetLang),
     ])
 
-    spinner.succeed(pc.green('Translation completed!'))
-    console.log(`\n${pc.cyan(`${sourceLanguage} → ${targetLang}:`)}`)
-    console.log(result)
+    const config = {
+      apiKey: answers.apiKey,
+      defaultTargetLang: answers.defaultTargetLang,
+    }
+
+    fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2))
+    return config
   }
-  catch (error) {
-    spinner.fail(pc.red('Translation failed!'))
-    console.error(error)
-    process.exit(1)
-  }
+
+  return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'))
 }
+
+// 初始化配置
+const config = await getOrCreateConfig()
+
+const openai = new OpenAI({
+  apiKey: config.apiKey,
+  baseURL: DEEPSEEK_API_URL,
+})
+
 
 // 设置命令行参数
 yargs(hideBin(process.argv))
@@ -96,10 +65,13 @@ yargs(hideBin(process.argv))
         alias: 't',
         describe: 'Target language',
         type: 'string',
-        default: 'English',
+        default: config.defaultTargetLang,
       })
   }, async (argv) => {
-    await translate(argv.text || '', argv.to)
+    let exitCode
+    exitCode = await resolveConfig(argv)
+
+    process.exit(exitCode)
   })
   .help()
   .alias('help', 'h')
